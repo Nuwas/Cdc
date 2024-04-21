@@ -1,0 +1,16 @@
+# PostgreSQL StatefulSet Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql-cdc-db-svc
+  namespace: cdc
+spec:
+  type: LoadBalancer
+  ports:
+    - name: pgsql
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+  selector:
+    app: postgresql-cdc-db
+      

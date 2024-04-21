@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: debezium-connect
+  namespace: cdc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: connect
+  template:
+    metadata:
+      labels:
+        app: connect
+    spec:
+      containers:
+      - name: connect
+        image: quay.io/debezium/connect:2.5
+        ports:
+        - containerPort: 8083
+        env:
+        - name: BOOTSTRAP_SERVERS
+          value: "kafka-cluster.cdc.svc.cluster.local:9092"
+        - name: GROUP_ID
+          value: "1"
+        - name: CONFIG_STORAGE_TOPIC
+          value: "my_connect_configs"
+        - name: OFFSET_STORAGE_TOPIC
+          value: "my_connect_offsets"
+        - name: STATUS_STORAGE_TOPIC
+          value: "my_connect_statuses"

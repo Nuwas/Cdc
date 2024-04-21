@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-pg-config
+  namespace: cdc
+data:
+  postgres.conf: |-
+    listen_addresses = '*'
+    shared_buffers = '128MB'
+    max_wal_size = '1GB'
+    min_wal_size = '80MB'
+    wal_level = logical
+    wal_log_hints = on
+    archive_command = 'wal-g wal-push %p'
+    restore_command = 'wal-g wal-fetch %f %p'

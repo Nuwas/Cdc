@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-cdc-db-config
+  namespace: cdc
+  labels:
+    app: postgresql-cdc-db
+data:
+  POSTGRES_DB: pgcdc
+  POSTGRES_USER: pgcdc
+  POSTGRES_PASSWORD: pgcdc
+  PGDATA: /data/pgdata

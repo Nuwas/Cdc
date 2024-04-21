@@ -1,0 +1,79 @@
+cd Kafka_zookeeper/
+
+kubectl apply -f zookeeper.yaml
+watch kubectl get all -n cdc
+
+kubectl apply -f kafka.yaml
+watch kubectl get all -n cdc
+
+Debug
+kubectl -n cdc describe pod/crs-kafka-2
+
+[root@k8smaster Kafka]# kubectl get all -n cdc
+NAME                                    READY   STATUS    RESTARTS      AGE
+pod/crs-kafka-0                         1/1     Running   0             30m
+pod/crs-kafka-1                         1/1     Running   0             29m
+pod/crs-kafka-2                         1/1     Running   0             29m
+pod/crs-zookeeper-0                     1/1     Running   0             32m
+pod/crs-zookeeper-1                     1/1     Running   0             31m
+pod/crs-zookeeper-2                     1/1     Running   0             31m
+pod/debezium-connect-55db54fd78-clqhb   1/1     Running   1 (62m ago)   5d20h
+pod/kafka-client-k8s-579b4fcc6d-st994   1/1     Running   1 (62m ago)   6d23h
+pod/postgresql-cdc-db-0                 1/1     Running   1 (62m ago)   7d1h
+pod/postgresql-cdc-db-1                 1/1     Running   1 (62m ago)   7d1h
+
+NAME                               TYPE           CLUSTER-IP      EXTERNAL-IP     PORT(S)                      AGE
+service/debezium-connect-service   LoadBalancer   10.99.84.29     192.168.0.203   8083:32608/TCP               5d22h
+service/kafka-client-k8s-svc       ClusterIP      10.97.119.63    <none>          8080/TCP                     6d23h
+service/kafka-cluster              LoadBalancer   10.97.189.114   192.168.0.204   9092:30182/TCP               30m
+service/postgresql-cdc-db-svc      LoadBalancer   10.100.18.148   192.168.0.201   5432:30724/TCP               11d
+service/zookeeper-cluster          ClusterIP      None            <none>          2181/TCP,2888/TCP,3888/TCP   32m
+
+NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/debezium-connect   1/1     1            1           5d22h
+deployment.apps/kafka-client-k8s   1/1     1            1           6d23h
+
+NAME                                          DESIRED   CURRENT   READY   AGE
+replicaset.apps/debezium-connect-54f4f5466c   0         0         0       5d20h
+replicaset.apps/debezium-connect-55db54fd78   1         1         1       5d20h
+replicaset.apps/debezium-connect-56f8d57c64   0         0         0       5d22h
+replicaset.apps/debezium-connect-68fc7c59b8   0         0         0       5d22h
+replicaset.apps/debezium-connect-74db775b55   0         0         0       5d21h
+replicaset.apps/kafka-client-k8s-579b4fcc6d   1         1         1       6d23h
+
+NAME                                 READY   AGE
+statefulset.apps/crs-kafka           3/3     30m
+statefulset.apps/crs-zookeeper       3/3     32m
+statefulset.apps/postgresql-cdc-db   2/2     11d
+[root@k8smaster Kafka]#
+[root@k8smaster Kafka]#
+
+Logs
+
+kubectl -n cdc logs pod/crs-zookeeper-0
+kubectl -n cdc logs pod/crs-kafka-0
+
+Login-to-pod
+
+kubectl -n cdc  exec -it pod/crs-kafka-0 -- /bin/bash
+
+topic-create
+
+root@crs-kafka-0:/bin# kafka-topics.sh --bootstrap-server kafka-cluster.cdc.svc.cluster.local:9092 --create --topic sample-topic-1 --replication-factor 1 --partitions 3
+Created topic sample-topic-1.
+
+topic-list
+
+root@crs-kafka-0:/bin# kafka-topics.sh --list  --bootstrap-server kafka-cluster.cdc.svc.cluster.local:9092
+sample-topic-1
+
+producer
+
+root@crs-kafka-0:/bin# kafka-console-producer.sh --broker-list kafka-cluster.cdc.svc.cluster.local:9092 --topic sample-topic-1
+>hi how are you
+>
+
+consumer
+
+root@crs-kafka-0:/# kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic sample-topic-1 --from-beginning
+hi how are you

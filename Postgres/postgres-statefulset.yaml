@@ -1,0 +1,46 @@
+# PostgreSQL StatefulSet - ConfigMap
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgresql-cdc-db
+  namespace: cdc
+spec:
+  serviceName: postgresql-cdc-db-service
+  selector:
+    matchLabels:
+      app: postgresql-cdc-db
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: postgresql-cdc-db
+    spec:
+      volumes:
+        - name: db-pg-config
+          configMap:
+            name: db-pg-config
+            defaultMode: 420
+      containers:
+        - name: postgresql-cdc-db
+          image: postgres:latest
+          args: ['-c', 'config_file=/etc/configs/postgres.conf']
+          #args: ['-c', 'config_file=/etc/postgres.conf', '-c', 'hba_file=/etc/pg_hba.conf']
+          volumeMounts:
+          - name: postgresql-cdc-db-disk
+            mountPath: /data
+          - name: db-pg-config
+            mountPath: /etc/configs
+            # Config from ConfigMap
+          envFrom:
+          - configMapRef:
+              name: postgres-cdc-db-config
+  # Volume Claim
+  volumeClaimTemplates:
+  - metadata:
+      name: postgresql-cdc-db-disk
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: local-path
+      resources:
+        requests:
+          storage: 2Gi

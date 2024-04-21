@@ -1,0 +1,96 @@
+
+Install sequence
+
+1) Postgresq
+2) Kafka_zookeper
+3) Postgres
+4) Kafka_sample_client_service
+
+[root@k8smaster debezium]# kubectl apply -f service.yaml
+
+[root@k8smaster debezium]# kubectl apply -f deployment.yaml
+deployment.apps/debezium-connect created
+[root@k8smaster debezium]#
+
+[root@k8smaster debezium]# kubectl -n cdc logs pod/debezium-connect-8fbcf5494-26g9b -f
+
+[root@k8smaster debezium]# kubectl get all -n cdc
+NAME                                    READY   STATUS    RESTARTS        AGE
+pod/crs-kafka-0                         1/1     Running   0               4h49m
+pod/crs-kafka-1                         1/1     Running   0               4h49m
+pod/crs-kafka-2                         1/1     Running   0               4h49m
+pod/crs-zookeeper-0                     1/1     Running   0               4h51m
+pod/crs-zookeeper-1                     1/1     Running   0               4h50m
+pod/crs-zookeeper-2                     1/1     Running   0               4h50m
+pod/debezium-connect-8fbcf5494-26g9b    1/1     Running   0               3m4s
+pod/kafka-client-k8s-579b4fcc6d-st994   1/1     Running   1 (5h21m ago)   7d3h
+pod/postgresql-cdc-db-0                 1/1     Running   1 (5h21m ago)   7d5h
+pod/postgresql-cdc-db-1                 1/1     Running   1 (5h21m ago)   7d5h
+
+NAME                               TYPE           CLUSTER-IP      EXTERNAL-IP     PORT(S)                      AGE
+service/debezium-connect-service   LoadBalancer   10.99.84.29     192.168.0.203   8083:32608/TCP               6d3h
+service/kafka-client-k8s-svc       ClusterIP      10.97.119.63    <none>          8080/TCP                     7d3h
+service/kafka-cluster              LoadBalancer   10.97.189.114   192.168.0.204   9092:30182/TCP               4h49m
+service/postgresql-cdc-db-svc      LoadBalancer   10.100.18.148   192.168.0.201   5432:30724/TCP               11d
+service/zookeeper-cluster          ClusterIP      None            <none>          2181/TCP,2888/TCP,3888/TCP   4h51m
+
+NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/debezium-connect   1/1     1            1           3m4s
+deployment.apps/kafka-client-k8s   1/1     1            1           7d3h
+
+NAME                                          DESIRED   CURRENT   READY   AGE
+replicaset.apps/debezium-connect-8fbcf5494    1         1         1       3m4s
+replicaset.apps/kafka-client-k8s-579b4fcc6d   1         1         1       7d3h
+
+NAME                                 READY   AGE
+statefulset.apps/crs-kafka           3/3     4h49m
+statefulset.apps/crs-zookeeper       3/3     4h51m
+statefulset.apps/postgresql-cdc-db   2/2     11d
+[root@k8smaster debezium]#
+
+
+
+
+[root@k8smaster debezium]# kubectl -n cdc exec -it pod/crs-kafka-0 -- /bin/bash
+root@crs-kafka-0:/#
+root@crs-kafka-0:/#
+root@crs-kafka-0:/#
+root@crs-kafka-0:/#
+root@crs-kafka-0:/#
+root@crs-kafka-0:/# kafka-topics.sh --list  --bootstrap-server kafka-cluster.cdc.svc.cluster.local:9092
+__consumer_offsets
+audit
+my_connect_configs
+my_connect_offsets
+my_connect_statuses
+sample-topic-1
+root@crs-kafka-0:/#
+
+
+Not used -- start
+kubectl -n cdc exec -it pod/debezium-connect-8fbcf5494-26g9b -- mkdir -p /http_payload
+kubectl cp postgres_debezium.json cdc/debezium-connect-8fbcf5494-26g9b:/http_payload/postgres_debezium.json
+-- end
+
+kubectl port-forward -n cdc service/debezium-connect-service 8883:8083
+
+
+#curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" debezium-connect-service.cdc.svc.cluster.local:8083/connectors/ -d @/http_payload/postgres_debezium.json
+
+curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" localhost:8883/connectors/ --data "@postgres_debezium.json"
+
+[root@k8smaster debezium]# curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" localhost:8883/connectors/ --data "@postgres_debezium.json"
+HTTP/1.1 201 Created
+Date: Sun, 21 Apr 2024 10:40:07 GMT
+Location: http://localhost:8883/connectors/debezium-postgres-connector
+Content-Type: application/json
+Content-Length: 746
+Server: Jetty(9.4.52.v20230823)
+
+{"name":"debezium-postgres-connector","config":{"connector.class":"io.debezium.connector.postgresql.PostgresConnector","topic.prefix":"dev.test","database.hostname":"postgresql-cdc-db-svc.cdc.svc.cluster.local","database.port":"5432","database.user":"pgcdc","database.password":"pgcdc","database.dbname":"pgcdc","database.server.name":"postgresql-cdc-db","plugin.name":"pgoutput","table.whitelist":"public.employee","snapshot.mode":"initial","database.history.kafka.bootstrap.servers":"kafka-cluster.cdc.svc.cluster.local:9092","database.history.kafka.topic":"schema-changes.postgres","include.schema.changes":"true","decimal.handling.mode":"string","tombstones.on.delete":"false","name":"debezium-postgres-connector"},"tasks":[],"type":"source"}
+[root@k8smaster debezium]#
+
+curl -i -X GET -H "Accept:application/json" localhost:8883/connectors/debezium-postgres-connector/status
+curl -i -X DELETE -H "Accept:application/json" localhost:8883/connectors/debezium-postgres-connector
+
+

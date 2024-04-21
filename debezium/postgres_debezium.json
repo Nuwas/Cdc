@@ -1,0 +1,22 @@
+  {
+    "name": "debezium-postgres-connector",
+    "config": {
+      "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+      "topic.prefix": "dev.test",
+      "database.hostname": "postgresql-cdc-db-svc.cdc.svc.cluster.local",
+      "database.port": "5432",
+      "database.user": "pgcdc",
+      "database.password": "pgcdc",
+      "database.dbname": "pgcdc",
+      "database.server.name": "postgresql-cdc-db",
+      "plugin.name": "pgoutput",
+      "table.whitelist": "public.employee",
+      "snapshot.mode": "initial",
+      "database.history.kafka.bootstrap.servers": "kafka-cluster.cdc.svc.cluster.local:9092",
+      "database.history.kafka.topic": "schema-changes.postgres",
+      "include.schema.changes": "true",
+      "decimal.handling.mode": "string",
+      "tombstones.on.delete": "false"
+    }
+  }
+  

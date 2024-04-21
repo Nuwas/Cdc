@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-client-k8s
+  namespace: cdc
+spec:
+  selector:
+    matchLabels:
+      app: kafka-client-k8s
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: kafka-client-k8s
+    spec:
+      containers:
+        - name: kafka-client-k8s
+          image: nponnamb/kafka_sample_client:0.0.1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080

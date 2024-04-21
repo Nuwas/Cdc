@@ -1,0 +1,42 @@
+[root@k8smaster ~]# kubectl get all -n cdc
+NAME                                    READY   STATUS    RESTARTS   AGE
+pod/crs-kafka-0                         1/1     Running   0          22h
+pod/crs-kafka-1                         1/1     Running   0          22h
+pod/crs-kafka-2                         1/1     Running   0          22h
+pod/crs-zookeeper-0                     1/1     Running   0          22h
+pod/crs-zookeeper-1                     1/1     Running   0          22h
+pod/crs-zookeeper-2                     1/1     Running   0          22h
+pod/debezium-connect-8fbcf5494-7ksnd    1/1     Running   0          53m
+pod/kafka-client-k8s-579b4fcc6d-hk45z   1/1     Running   0          17h
+pod/postgresql-cdc-db-0                 1/1     Running   0          3h59m
+pod/postgresql-cdc-db-1                 1/1     Running   0          3h59m
+
+NAME                               TYPE           CLUSTER-IP      EXTERNAL-IP     PORT(S)                      AGE
+service/debezium-connect-service   LoadBalancer   10.99.84.29     192.168.0.203   8083:32608/TCP               6d20h
+service/kafka-client-k8s-svc       ClusterIP      10.97.119.63    <none>          8080/TCP                     7d21h
+service/kafka-cluster              LoadBalancer   10.97.189.114   192.168.0.204   9092:30182/TCP               22h
+service/postgresql-cdc-db-svc      LoadBalancer   10.100.18.148   192.168.0.201   5432:30724/TCP               12d
+service/zookeeper-cluster          ClusterIP      None            <none>          2181/TCP,2888/TCP,3888/TCP   22h
+
+NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/debezium-connect   1/1     1            1           53m
+deployment.apps/kafka-client-k8s   1/1     1            1           17h
+
+NAME                                          DESIRED   CURRENT   READY   AGE
+replicaset.apps/debezium-connect-8fbcf5494    1         1         1       53m
+replicaset.apps/kafka-client-k8s-579b4fcc6d   1         1         1       17h
+
+NAME                                 READY   AGE
+statefulset.apps/crs-kafka           3/3     22h
+statefulset.apps/crs-zookeeper       3/3     22h
+statefulset.apps/postgresql-cdc-db   2/2     3h59m
+[root@k8smaster ~]#
+
+
+[root@k8smaster ~]# kubectl -n cdc exec -it pod/crs-kafka-0 -- /bin/bash
+
+root@crs-kafka-0:/# kafka-console-consumer.sh --bootstrap-server kafka-cluster.cdc.svc.cluster.local:9092 --topic dev.test.public.employee --from-beginning
+
+{"schema":{"type":"struct","fields":[{"type":"struct","fields":[{"type":"int32","optional":true,"field":"id"},{"type":"string","optional":true,"field":"name"},{"type":"string","optional":true,"field":"company"},{"type":"string","optional":true,"field":"designation"}],"optional":true,"name":"dev.test.public.employee.Value","field":"before"},{"type":"struct","fields":[{"type":"int32","optional":true,"field":"id"},{"type":"string","optional":true,"field":"name"},{"type":"string","optional":true,"field":"company"},{"type":"string","optional":true,"field":"designation"}],"optional":true,"name":"dev.test.public.employee.Value","field":"after"},{"type":"struct","fields":[{"type":"string","optional":false,"field":"version"},{"type":"string","optional":false,"field":"connector"},{"type":"string","optional":false,"field":"name"},{"type":"int64","optional":false,"field":"ts_ms"},{"type":"string","optional":true,"name":"io.debezium.data.Enum","version":1,"parameters":{"allowed":"true,last,false,incremental"},"default":"false","field":"snapshot"},{"type":"string","optional":false,"field":"db"},{"type":"string","optional":true,"field":"sequence"},{"type":"string","optional":false,"field":"schema"},{"type":"string","optional":false,"field":"table"},{"type":"int64","optional":true,"field":"txId"},{"type":"int64","optional":true,"field":"lsn"},{"type":"int64","optional":true,"field":"xmin"}],"optional":false,"name":"io.debezium.connector.postgresql.Source","field":"source"},{"type":"string","optional":false,"field":"op"},{"type":"int64","optional":true,"field":"ts_ms"},{"type":"struct","fields":[{"type":"string","optional":false,"field":"id"},{"type":"int64","optional":false,"field":"total_order"},{"type":"int64","optional":false,"field":"data_collection_order"}],"optional":true,"name":"event.block","version":1,"field":"transaction"}],"optional":false,"name":"dev.test.public.employee.Envelope","version":1},"payload":{"before":{"id":12,"name":"Jamesbond-12","company":"Youtube-10","designation":"PE-10"},"after":{"id":12,"name":"Babbu dragon ball","company":"Youtube-10","designation":"PE-10"},"source":{"version":"2.5.4.Final","connector":"postgresql","name":"dev.test","ts_ms":1713707689065,"snapshot":"false","db":"pgcdc","sequence":"[\"26792064\",\"26792352\"]","schema":"public","table":"employee","txId":767,"lsn":26792352,"xmin":null},"op":"u","ts_ms":1713707689196,"transaction":null}}
+
+

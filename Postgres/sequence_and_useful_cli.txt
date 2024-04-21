@@ -1,0 +1,118 @@
+few more testing required
+
+Install
+
+cd /opt/dev/cdc-WithDB/postgres/statefulset
+ 
+ If Rancher is not installed, then please install the rancher and storageprovider and then proceed with postgres installation
+ kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
+ 
+ If Storage class for local-storage is not created, then install it for dynamic volume provisioning.	
+ kubectl apply -f storage_class.yaml
+ 
+ Reference link https://www.civo.com/academy/kubernetes-volumes/dynamic-volume-provisioning-demo
+
+ kubectl apply -f postgres-configmap.yaml
+ kubectl apply -f postgres-configmap-conf.yaml
+ kubectl apply -f postgres-statefulset.yaml
+ kubectl apply -f postgres-service.yaml
+
+ kubectl get pvc -n cdc
+ kubectl get pv
+
+
+ kubectl get all -n cdc --> get the pod name
+
+
+ To connect to the postgres use the below cli
+
+ kubectl -n cdc exec -it postgresql-cdc-db-0 -- psql -U pgcdc
+
+
+
+ not used --> #kubectl create configmap postgresql-conf --from-file=/opt/dev/Cdc/Postgres/postgresql.conf --namespace=cdc
+
+
+ [root@k8smaster Postgres]# kubectl -n cdc exec -it postgresql-cdc-db-0 -- psql -U pgcdc
+psql (16.2 (Debian 16.2-1.pgdg120+2))
+Type "help" for help.
+
+pgcdc=# ^C
+pgcdc=# SHOW wal_level;
+ wal_level
+-----------
+ logical
+(1 row)
+
+pgcdc=#
+create table employee (id integer primary key, name varchar, company varchar, designation varchar);
+alter table public.employee replica identity full; 
+select * from public.employee;
+
+
+
+
+-->Now configure debezium connector and then insert value to table<--
+
+
+pgcdc=#  GRANT SELECT ON employee TO pgcdc;
+GRANT
+pgcdc=# SELECT rolname, rolsuper, rolreplication FROM pg_roles WHERE rolname = 'pgcdc';
+ rolname | rolsuper | rolreplication
+---------+----------+----------------
+ pgcdc   | t        | t
+(1 row)
+
+pgcdc=# SELECT slot_name, database, active, active_pid, slot_type, plugin, restart_lsn, confirmed_flush_lsn
+FROM pg_replication_slots;
+ slot_name | database | active | active_pid | slot_type |  plugin  | restart_lsn | confirmed_flush_lsn
+-----------+----------+--------+------------+-----------+----------+-------------+---------------------
+ debezium  | pgcdc    | f      |            | logical   | pgoutput | 0/1981DE0   | 0/1981DE0
+(1 row)
+
+pgcdc=#
+pgcdc=#
+pgcdc=# SHOW wal_level;
+SHOW archive_mode;
+SHOW archive_command;
+SHOW max_wal_size;
+SHOW min_wal_size;
+ wal_level
+-----------
+ logical
+(1 row)
+
+ archive_mode
+--------------
+ off
+(1 row)
+
+ archive_command
+-----------------
+ (disabled)
+(1 row)
+
+ max_wal_size
+--------------
+ 1GB
+(1 row)
+
+ min_wal_size
+--------------
+ 80MB
+(1 row)
+
+pgcdc=#
+pgcdc=#
+pgcdc=# SELECT rolname, rolsuper, rolreplication FROM pg_roles WHERE rolname = 'pgcdc';
+ rolname | rolsuper | rolreplication
+---------+----------+----------------
+ pgcdc   | t        | t
+(1 row)
+
+pgcdc=# insert into employee (id, name, company, designation) values (8, 'Nuwas-5', 'Youtube', 'PE');
+INSERT 0 1
+
+
+
+
